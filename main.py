@@ -67,7 +67,6 @@ def getAngle(vec: tuple) -> float:
     angle = degrees(acos(arccos))
     if vec[1] < 0:
         angle *= -1
-        
     return angle
 
 
@@ -76,49 +75,28 @@ def getAngle(vec: tuple) -> float:
 class Ball(pg.sprite.Sprite):
     def __init__(self, x, y) -> None:
         super().__init__()
-        # self.image = pg.Surface([width, height])
-        # self.image.fill(color)
-        self.image = BALL_IMG
-        self.origImage = self.image
-        # self.screen = screen
-        # self.image = pg.draw.circle(self.screen, color, (x + width//2, y + height//2), width//2)
-
-
-        # # pg.draw.rect(self.screen,BROWN,self.ball)
-        # # radius = self.ball.rect.width // 2
-        # # pg.draw.circle(self.screen, BROWN, (self.ball.rect.x + radius, self.ball.rect.y + radius), radius)
-
-        self.moveVector = (-4,4)
+        self.image = BALL_IMG           # the rotated image,  it should be reset to orig then rotated, every frame
+        self.origImage = self.image     # DO NOT CHANGE
 
         self.rect = self.image.get_rect()
-        self.origRect = self.rect
-        # self.rect = self.image
         self.rect.center = [x,y]
-        self.origRect.center = self.rect.center
-
+        
+        self.moveVector = (4,4)
         self.angle = 0.0
 
     def move(self):
         self.rect.x += self.moveVector[0]
         self.rect.y += self.moveVector[1]
-        currentPos = (str(self.rect.x) + ", " + str(self.rect.y))
-        self.angle = getAngle(self.moveVector)
-        print(currentPos + " and move = " + str(self.moveVector[0]) + ", " + str(self.moveVector[1]))
-        # print(self.angle)
         self.rot_center()
-
-    def update(self):
-        # self.image = pg.transform.rotate(self.image, self.angle)
-        # self.rot_center()
-        pass
 
     def rot_center(self):
         """rotate an image while keeping its center"""
-        self.image = pg.transform.rotate(self.origImage, self.angle)
-        self.rect = self.image.get_rect(center=self.origRect.center)
-        # return rotatedImage, rotatedRect
+        self.angle = getAngle(self.moveVector)
+        self.image = pg.transform.rotate(self.origImage, -self.angle)   # rotate the original image only
+        self.rect = self.image.get_rect(center=self.rect.center)
 
-
+    def update(self):
+        self.move()
 
 class App:
     def __init__(self):
@@ -129,18 +107,15 @@ class App:
         # ----- Gameplay ------------------------------------
         self.FPS = 60
 
-
         self.playerSpeed = 5
 
         # ----- Objects -------------------------------------
-        self.field = pg.Rect(20,20,560,560)
+        self.field = pg.Rect(20,20,self.WINDOW_W - 40,self.WINDOW_H - 40)
 
-        # self.ball = pg.Rect(150,150,20,20)
-
-        self.player = pg.Rect(300,300,40,40)
+        self.player = pg.Rect(50,50,40,40)
 
         # ----- Sprite groups -------------------------------
-        self.ball = Ball(150,150)
+        self.ball = Ball(150,300)
         self.ballGroup = pg.sprite.Group()
         # self.ballGroup.add(self.ball)
 
@@ -151,15 +126,15 @@ class App:
 
         if (self.ball.rect.x > self.field.x and self.ball.rect.x + self.ball.rect.width < self.field.x + self.field.width and
             self.ball.rect.y > self.field.y and self.ball.rect.y + self.ball.rect.height < self.field.y + self.field.height):
-            return (True, "")
+            return (False, "")
         elif self.ball.rect.x <= self.field.x:
-            return (False, "L")
+            return (True, "L")
         elif self.ball.rect.x + self.ball.rect.width >= self.field.x + self.field.width:
-            return (False, "R")
+            return (True, "R")
         elif self.ball.rect.y <= self.field.y:
-            return (False, "U")
+            return (True, "U")
         elif self.ball.rect.y + self.ball.rect.height >= self.field.y + self.field.height:
-            return (False, "D")
+            return (True, "D")
 
     def playerCollision(self) -> tuple:
         """Return tuple of (bool, str)
@@ -184,15 +159,8 @@ class App:
         if keysPressed[pg.K_RIGHT] and self.player.x + self.player.width < self.field.x + self.field.width:
             self.player.x += self.playerSpeed
 
-
-
-        # ball colliding with player
-        # self.playerCollision()
-
         # ball natural moving/bouncing
         if self.wallCollision()[0]:
-            self.ball.move()
-        else:
             n = ()
             if self.wallCollision()[1] == "L":
                 n = (1,0)
@@ -204,7 +172,17 @@ class App:
                 n = (0,-1)
             
             self.ball.moveVector = reflectVec(self.ball.moveVector, n)
-            self.ball.move()
+
+            angle = getAngle(self.ball.moveVector)
+            # print("Wall! Angle = " + str(angle))
+            
+        #self.ball.move()
+
+
+        # ball colliding with player
+        # self.playerCollision()
+
+
 
     def draw(self):
         self.screen.fill(BLACK)
@@ -238,9 +216,6 @@ class App:
                 if event.type == pg.QUIT:
                     runFlag = False
                     break
-
-            keysPressed = pg.key.get_pressed()
-
 
             self.update()
 

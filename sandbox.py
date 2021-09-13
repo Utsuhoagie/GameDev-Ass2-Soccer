@@ -55,7 +55,7 @@ reverseVec(vec)
 
 
 
-angleVec = (-4,-4)
+angleVec = (4,4)
 arccos = float(angleVec[0]/math.sqrt(math.pow(angleVec[0],2) + math.pow(angleVec[1],2)))
 # print(math.acos(arccos))
 angle = math.degrees(math.acos(arccos))
