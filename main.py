@@ -105,19 +105,19 @@ class App:
             where bool = ball collides
                   str  = which side of player it collided"""
         #if self.ball.rect.colliderect(self.player):
-        for collision in pg.sprite.spritecollide(self.ball, self.playerGroup, False, pg.sprite.collide_mask):
-            offset = (self.ball.rect.center[0] - collision.rect.center[0], self.ball.rect.center[1] - collision.rect.center[1])
-            collisionPoint = self.ball.mask.overlap(collision.mask, offset)
+        for playerCollide in pg.sprite.spritecollide(self.ball, self.playerGroup, False, pg.sprite.collide_mask):
+            offset = (self.ball.rect.center[0] - playerCollide.rect.center[0], self.ball.rect.center[1] - playerCollide.rect.center[1])
+            collisionPoint = self.ball.mask.overlap(playerCollide.mask, offset)
 
             if collisionPoint is not None:
                 # print("Collides at " + str(collisionPoint))
                 relativeCenter = Vector2(self.p1.rect.center[0] - self.p1.rect.x, self.p1.rect.center[1] - self.p1.rect.y)
                 # print("Relative center is " + str(relativeCenter))
 
-                leftSide = ((0,0), (self.p1.rect.width//2, self.p1.rect.height))
-                rightSide = ((self.p1.rect.width//2,0),(self.p1.rect.width,self.p1.rect.height))
-                topSide = ((0,0), (self.p1.rect.width, self.p1.rect.height//2))
-                bottomSide = ((0,self.p1.rect.height//2),(self.p1.rect.width,self.p1.rect.height))
+                leftSide = ((0,0), (playerCollide.rect.width//2, playerCollide.rect.height))
+                rightSide = ((playerCollide.rect.width//2,0), (playerCollide.rect.width, playerCollide.rect.height))
+                topSide = ((0,0), (playerCollide.rect.width, playerCollide.rect.height//2))
+                bottomSide = ((0, playerCollide.rect.height//2), (playerCollide.rect.width, playerCollide.rect.height))
 
                 reflectVec = unitVecKeepSpeed(Vector2(collisionPoint[0] - relativeCenter[0], collisionPoint[1] - relativeCenter[1]), self.ball.moveVector.length())
                 # reflectVec = self.ball.moveVector.reflect((relativeCenter[0] - collisionPoint[0], relativeCenter[1] - collisionPoint[1]))
@@ -138,6 +138,9 @@ class App:
 
                 #self.ball.moveVector = Vector2(reflectVec)
                 self.ball.moveVector = reflectVec
+
+                # slow player down, until no more collision
+                playerCollide.speed = 1
 
 
     def handleInput(self, player: Player):
