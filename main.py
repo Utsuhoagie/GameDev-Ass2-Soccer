@@ -1,4 +1,5 @@
 import pygame as pg
+from pygame import *
 import os
 import random
 from math import *
@@ -39,8 +40,8 @@ BALL_6 = pg.image.load(os.path.join("Sprites\Ball","b6.png")).convert_alpha()
 BALL_SPRITES = [BALL_1, BALL_2, BALL_3, BALL_4, BALL_5, BALL_6]
 
 
-PLAYER_SPRITE = pg.image.load(os.path.join("Sprites\Player","blue.png")).convert_alpha()
-
+P1_SPRITE = pg.image.load(os.path.join("Sprites\Players","blue.png")).convert_alpha()
+P2_SPRITE = pg.image.load(os.path.join("Sprites\Players","red.png")).convert_alpha()
 # ----- Audio ---------------------------------------
 
 # ----- Gameplay ------------------------------------
@@ -51,28 +52,50 @@ PLAYER_SPRITE = pg.image.load(os.path.join("Sprites\Player","blue.png")).convert
 
 # ----- Helper functions -----------------------------------
 
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = Vector2(v1).normalize()
+    v2_u = Vector2(v2).normalize()
+    return v1_u.angle_to(v2_u)
+
+
+def reverseVec(v: tuple):
+    return Vector2(-v[0],-v[1])
+    #v = (-v[0], -v[1])
+    #print(vec)
+
 def addVec(v1: tuple, v2: tuple) -> tuple:
-    return (v1[0] + v2[0], v1[1] + v2[1])
+    return Vector2(v1[0] + v2[0], v1[1] + v2[1])
 
 def subVec(v1: tuple, v2: tuple) -> tuple:
-    return (v1[0] - v2[0], v1[1] - v2[1])
-
-def scalarProdVec(x: float, v: tuple) -> tuple:
-    return (v[0] * x, v[1] * x)
+    return Vector2(v1[0] - v2[0], v1[1] - v2[1])
 
 def dotProdVec(v1: tuple, v2: tuple) -> int:
-    return v1[0]*v2[0] + v1[1]*v2[1]
+    return Vector2(v1[0], v1[1]).dot(v2)
 
 def crossProdVec(v1: tuple, v2: tuple) -> tuple:
     pass
 
 def reflectVec(v1: tuple, n: tuple) -> tuple:
     # note that n is normed <=> n = (1,0) | (-1,0) | ...
-    v2 = subVec(v1, scalarProdVec(float(dotProdVec(v1,n)*2), n))
+    v2 = Vector2(v1).reflect(n)
     return v2
 
 def lengthVec(v: tuple) -> float:
-    return sqrt(v[0]*v[0] + v[1]*v[1])
+    return Vector2(v).length()
+
+def unitVec(v):
+    """ Returns the unit vector of the vector.  """
+    resultVec = Vector2(v)
+    return resultVec.normalize()
 
 def unitVecKeepSpeed(v: tuple, speed: float) -> tuple:
     if lengthVec(v) != 0:
@@ -113,7 +136,7 @@ class Ball(pg.sprite.Sprite):
         self.rect.center = [x,y]
         
         #self.moveVector = (0.3999999999999999, -2.7999999999999994)
-        self.moveVector = (4,5)
+        self.moveVector = Vector2(2,2)
         self.moveVectorTimesChanged = 0         # check if it is stuck
         self.wallStuck = ""                     # which wall the ball is stuck in
         self.angle = 0.0
@@ -129,7 +152,8 @@ class Ball(pg.sprite.Sprite):
 
     def rotate(self):
         """rotate an image while keeping its center"""
-        self.angle = getAngle(self.moveVector)
+        #self.angle = getAngle(self.moveVector)
+        self.angle = self.moveVector.angle_to(Vector2(1,0))
         self.image = pg.transform.rotate(self.origFrames[int(self.currentImageIndex)], -self.angle)   # rotate original image only
         self.rect = self.image.get_rect(center=self.rect.center)
 
@@ -155,6 +179,9 @@ class Ball(pg.sprite.Sprite):
             else:
                 self.moveVectorTimesChanged -= 1
         
+        if self.moveVector.length() == 0:
+            self.isAnimated = False
+
         if self.isAnimated:
             self.currentImageIndex += self.animationSpeed
 
@@ -169,10 +196,10 @@ class Ball(pg.sprite.Sprite):
 
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, pImage):
         super().__init__()
 
-        self.frames = [PLAYER_SPRITE]
+        self.frames = [pImage]
         self.maxFrames = 1
 
         self.isAnimated = False
@@ -180,12 +207,13 @@ class Player(pg.sprite.Sprite):
         self.currentImageIndex = 0
         self.origFrames = self.frames           # DO NOT CHANGE
         self.animationSpeed = 0
-        
+        self.facing = {"left": 0, "right": 0, "up": 0, "down": 0}
 
         self.rect = self.image.get_rect()
         self.rect.center = [x,y]
 
-
+        self.wallStuck = ""
+        self.speed = 4
 
         # for accurate collision with ball
         self.mask = pg.mask.from_surface(self.image)
@@ -194,8 +222,91 @@ class Player(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [x,y]
         
-        # self.moveVector = (2,-2)
         self.angle = 0.0
+
+    def getStringFromFace(self) -> str:
+        result = ""
+        for face in self.facing:
+            result += str(self.facing[face])
+
+        return result
+
+    def rotate(self):
+        """rotate an image while keeping its center"""
+        currentFace = self.getStringFromFace()
+
+        if currentFace in ["1000", "1011"]:
+            # face left, move left
+            if "L" not in self.wallStuck:
+                self.rect.x -= self.speed
+            self.angle = 180
+        elif currentFace in ["0100", "0111"]:
+            # face right, move right
+            if "R" not in self.wallStuck:
+                self.rect.x += self.speed
+            self.angle = 0
+        elif currentFace in ["0010", "1110"]:
+            # face up, move up
+            if "U" not in self.wallStuck:
+                self.rect.y -= self.speed
+            self.angle = 90
+        elif currentFace in ["0001", "1101"]:
+            # face down, move down
+            if "D" not in self.wallStuck:
+                self.rect.y += self.speed
+            self.angle = -90
+        elif currentFace == "1010":
+            # face up left
+            if ("L" not in self.wallStuck) and ("U" not in self.wallStuck):
+                self.rect.x -= self.speed
+                self.rect.y -= self.speed
+            elif "L" not in self.wallStuck:
+                self.rect.x -= self.speed
+            elif "U" not in self.wallStuck:
+                self.rect.y -= self.speed
+            self.angle = 135
+        elif currentFace == "0101":
+            # face down right
+            if ("R" not in self.wallStuck) and ("D" not in self.wallStuck):
+                self.rect.x += self.speed
+                self.rect.y += self.speed
+            elif "R" not in self.wallStuck:
+                self.rect.x += self.speed
+            elif "D" not in self.wallStuck:
+                self.rect.y += self.speed
+            self.angle = -45
+        elif currentFace == "1001":
+            # face down left
+            if ("L" not in self.wallStuck) and ("D" not in self.wallStuck):
+                self.rect.x -= self.speed
+                self.rect.y += self.speed
+            elif "L" not in self.wallStuck:
+                self.rect.x -= self.speed
+            elif "D" not in self.wallStuck:
+                self.rect.y += self.speed
+            self.angle = -135
+        elif currentFace == "0110":
+            # face up right
+            if ("R" not in self.wallStuck) and ("U" not in self.wallStuck):
+                self.rect.x += self.speed
+                self.rect.y -= self.speed
+            elif "R" not in self.wallStuck:
+                self.rect.x += self.speed
+            elif "U" not in self.wallStuck:
+                self.rect.y -= self.speed
+            self.angle = 45
+        
+            
+        # self.angle = getAngle(self.moveVector)
+        self.image = pg.transform.rotate(self.origFrames[int(0)], self.angle)   # rotate original image only
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def update(self):
+        self.rotate()
+
+        self.wallStuck = ""
+
+        self.facing = self.facing.fromkeys(self.facing,0)
 
 
 
@@ -219,8 +330,10 @@ class App:
         self.ball = Ball(50,50)
         self.ballGroup = pg.sprite.Group()
 
-        self.player = Player(200,250)
+        self.p1 = Player(200,250, P1_SPRITE)
+        self.p2 = Player(400,450, P2_SPRITE)
         self.playerGroup = pg.sprite.Group()
+        
 
         self.collideBox = []
 
@@ -263,6 +376,7 @@ class App:
         # elif self.ball.rect.y + self.ball.rect.height >= self.field.y + self.field.height:
         #     return (True, "D")
 
+
     def playerCollision(self) -> tuple:
         """Return tuple of (bool, str)
             where bool = ball collides
@@ -281,50 +395,84 @@ class App:
 
 
                 print("Collides at " + str(collisionPoint))
-                relativeCenter = (self.player.rect.center[0] - self.player.rect.x, self.player.rect.center[1] - self.player.rect.y)
+                relativeCenter = (self.p1.rect.center[0] - self.p1.rect.x, self.p1.rect.center[1] - self.p1.rect.y)
                 print("Relative center is " + str(relativeCenter))
 
-                leftSide = ((0,0), (self.player.rect.width//2, self.player.rect.height))
-                rightSide = ((self.player.rect.width//2,0),(self.player.rect.width,self.player.rect.height))
-                topSide = ((0,0), (self.player.rect.width, self.player.rect.height//2))
-                bottomSide = ((0,self.player.rect.height//2),(self.player.rect.width,self.player.rect.height))
+                leftSide = ((0,0), (self.p1.rect.width//2, self.p1.rect.height))
+                rightSide = ((self.p1.rect.width//2,0),(self.p1.rect.width,self.p1.rect.height))
+                topSide = ((0,0), (self.p1.rect.width, self.p1.rect.height//2))
+                bottomSide = ((0,self.p1.rect.height//2),(self.p1.rect.width,self.p1.rect.height))
 
                 reflectVec = unitVecKeepSpeed((collisionPoint[0] - relativeCenter[0], collisionPoint[1] - relativeCenter[1]), lengthVec(self.ball.moveVector))
                 print("Reflection vector is " + str(reflectVec))
                 
                 if collisionPoint in leftSide:
                     self.ball.wallStuck = "R"
-                    self.ball.fixBallPos(8)
+                    self.ball.fixBallPos(15)
                 if collisionPoint in rightSide:
                     self.ball.wallStuck = "L"
-                    self.ball.fixBallPos(8)
+                    self.ball.fixBallPos(15)
                 if collisionPoint in topSide:
                     self.ball.wallStuck = "D"
-                    self.ball.fixBallPos(8)
+                    self.ball.fixBallPos(15)
                 if collisionPoint in bottomSide:
                     self.ball.wallStuck = "U"
-                    self.ball.fixBallPos(8)
+                    self.ball.fixBallPos(15)
 
-                self.ball.moveVector = reflectVec
+                self.ball.moveVector = Vector2(reflectVec)
                 # self.ball.moveVectorTimesChanged += 1
                 # this should bounce the ball back, using new vector
 
 
 
     def update(self):
-        # Player input
+
+        # P1 input
         keysPressed = pg.key.get_pressed()
 
-        if keysPressed[pg.K_UP] and self.player.rect.y > self.field.y:
-            self.player.rect.y -= self.playerSpeed
-        if keysPressed[pg.K_DOWN] and self.player.rect.y + self.player.rect.height < self.field.y + self.field.height:
-            self.player.rect.y += self.playerSpeed
-        if keysPressed[pg.K_LEFT] and self.player.rect.x > self.field.x:
-            self.player.rect.x -= self.playerSpeed
-        if keysPressed[pg.K_RIGHT] and self.player.rect.x + self.player.rect.width < self.field.x + self.field.width:
-            self.player.rect.x += self.playerSpeed
+        if keysPressed[pg.K_UP]:
+            if self.p1.rect.y <= self.field.y:
+                self.p1.wallStuck += "U"
+            #self.p1.rect.y -= self.playerSpeed
+            self.p1.facing["up"] = 1
+        if keysPressed[pg.K_DOWN]:
+            if self.p1.rect.y + self.p1.rect.height >= self.field.y + self.field.height:
+                self.p1.wallStuck += "D"
+            #self.p1.rect.y += self.playerSpeed
+            self.p1.facing["down"] = 1
+        if keysPressed[pg.K_LEFT]:
+            if self.p1.rect.x <= self.field.x:
+                self.p1.wallStuck += "L"
+            #self.p1.rect.x -= self.playerSpeed
+            self.p1.facing["left"] = 1
+        if keysPressed[pg.K_RIGHT]:
+            if self.p1.rect.x + self.p1.rect.width >= self.field.x + self.field.width:
+                self.p1.wallStuck += "R"
+            #self.p1.rect.x += self.playerSpeed
+            self.p1.facing["right"] = 1
 
-        #print("Player: " + str(self.player.x) + " " + str(self.player.y))
+        if keysPressed[pg.K_w]:
+            if self.p2.rect.y <= self.field.y:
+                self.p2.wallStuck += "U"
+            #self.p2.rect.y -= self.playerSpeed
+            self.p2.facing["up"] = 1
+        if keysPressed[pg.K_s]:
+            if self.p2.rect.y + self.p2.rect.height >= self.field.y + self.field.height:
+                self.p2.wallStuck += "D"
+            #self.p2.rect.y += self.playerSpeed
+            self.p2.facing["down"] = 1
+        if keysPressed[pg.K_a]:
+            if self.p2.rect.x <= self.field.x:
+                self.p2.wallStuck += "L"
+            #self.p2.rect.x -= self.playerSpeed
+            self.p2.facing["left"] = 1
+        if keysPressed[pg.K_d]:
+            if self.p2.rect.x + self.p2.rect.width >= self.field.x + self.field.width:
+                self.p2.wallStuck += "R"
+            #self.p2.rect.x += self.playerSpeed
+            self.p2.facing["right"] = 1
+
+        #print("Player: " + str(self.p1.x) + " " + str(self.p1.y))
 
         # ball natural bouncing with walls
         if not self.wallCollision()[0]:
@@ -340,7 +488,7 @@ class App:
             elif self.wallCollision()[1] == "D":
                 n = (0,-1)
             
-            self.ball.moveVector = reflectVec(self.ball.moveVector, n)
+            self.ball.moveVector = Vector2(reflectVec(self.ball.moveVector, n))
 
         # ball colliding with player
         self.playerCollision()
@@ -351,7 +499,7 @@ class App:
         self.screen.fill(BLACK)
 
 
-        currentSpeed = "(" + str(self.ball.moveVector[0]) + ", " + str(self.ball.moveVector[1]) + ") - (" + str(self.player.rect.center[0]) + ", " + str(self.player.rect.center[1]) + ")"
+        currentSpeed = "(" + str(self.ball.moveVector[0]) + ", " + str(self.ball.moveVector[1]) + ") - (" + str(self.p1.rect.center[0]) + ", " + str(self.p1.rect.center[1]) + ")"
         speedText = MAIN_FONT.render(currentSpeed,1,WHITE)
         self.screen.blit(speedText,(self.WINDOW_W//2 - speedText.get_width()//2, 7))
 
@@ -365,7 +513,8 @@ class App:
         # pg.draw.circle(self.screen, BROWN, (self.ball.rect.x + radius, self.ball.rect.y + radius), radius)
 
         # pg.draw.rect(self.screen, RED, self.player)
-        self.playerGroup.add(self.player)
+        self.playerGroup.add(self.p1)
+        self.playerGroup.add(self.p2)
         self.playerGroup.update()
         self.playerGroup.draw(self.screen)
 
