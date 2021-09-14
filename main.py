@@ -38,6 +38,9 @@ BALL_5 = pg.image.load(os.path.join("Sprites\Ball","b5.png"))
 BALL_6 = pg.image.load(os.path.join("Sprites\Ball","b6.png"))
 BALL_SPRITES = [BALL_1, BALL_2, BALL_3, BALL_4, BALL_5, BALL_6]
 
+
+PLAYER_SPRITE = pg.image.load(os.path.join("Sprites\Player","blue.png"))
+
 # ----- Audio ---------------------------------------
 
 # ----- Gameplay ------------------------------------
@@ -84,13 +87,20 @@ class Ball(pg.sprite.Sprite):
         super().__init__()
 
         self.frames = BALL_SPRITES
-        self.framesNum = 6
+        self.maxFrames = 6
+
+        
+
         self.isAnimated = False
-        self.image = self.frames[0]           # the rotated image,  it should be reset to orig then rotated, every frame
+        self.image = self.frames[0]             # the rotated image,  it should be reset to orig then rotated, every frame
         self.currentImageIndex = 0
-        self.origFrames = self.frames     # DO NOT CHANGE
+        self.origFrames = self.frames           # DO NOT CHANGE
         self.animationSpeed = 0
 
+        # for accurate collision with players
+        self.mask = pg.mask.from_surface(self.image)
+        
+        # for easy collision with walls
         self.rect = self.image.get_rect()
         self.rect.center = [x,y]
         
@@ -116,10 +126,11 @@ class Ball(pg.sprite.Sprite):
         if self.isAnimated:
             self.currentImageIndex += self.animationSpeed
 
-            if self.currentImageIndex > self.framesNum - 1:
+            if self.currentImageIndex > self.maxFrames - 1:
                 self.currentImageIndex = 0
             
             self.image = self.frames[int(self.currentImageIndex)]
+            self.mask = pg.mask.from_surface(self.image)
 
         self.move()
 
@@ -129,10 +140,11 @@ class Player(pg.sprite.Sprite):
     def __init__(self, x, y, width, height):
         super().__init__()
 
-        
+        self.frames = [PLAYER_SPRITE]
+        self.maxFrames = 1
 
-        self.image = pg.Surface((width,height))
-        self.image.fill(RED)
+        self.image = self.frames[0]
+        # self.image.fill(RED)
 
         self.rect = self.image.get_rect()
         self.rect.center = [x,y]
@@ -146,7 +158,7 @@ class App:
         pg.display.set_caption("Soccer")
 
         # ----- Gameplay ------------------------------------
-        self.FPS = 2
+        self.FPS = 60
 
         self.playerSpeed = 5
 
@@ -193,6 +205,9 @@ class App:
             self.collideBox.append(clipBox)
             #pg.draw.rect(self.screen, BROWN, clipBox)
             #pg.display.update()
+
+            # this should bounce the ball back, using new vector
+            # 
 
 
 
@@ -248,6 +263,19 @@ class App:
         self.playerGroup.update()
         self.playerGroup.draw(self.screen)
 
+
+        """Draw mask, for testing"""
+        # otuple = self.ball.mask.outline()
+        # olist = list()
+        # for point in otuple:
+        #     listPoint = [point[0] + 50, point[1] + 50]
+        #     olist.append(listPoint)
+        #     # point[0] += 50
+        #     # point[1] += 50
+        #     # print(type(point))
+        # pg.draw.polygon(self.screen,(WHITE),olist)
+
+
         # Ball sprite!!!!
         # print("Ball pos: " + str(self.ball.rect.x) + " " + str(self.ball.rect.y))
         self.ballGroup.add(self.ball)
@@ -258,6 +286,7 @@ class App:
             pg.draw.rect(self.screen, BROWN, collideBox)
 
         self.collideBox.clear()
+
 
         pg.display.update()
 
