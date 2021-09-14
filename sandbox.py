@@ -62,10 +62,27 @@ angle = math.degrees(math.acos(arccos))
 if angleVec[1] < 0:
     angle *= -1
 
-print(angle)
+# print(angle)
 
 
 # def foo():
 #     return 5,3
 
 # print(type(foo()))
+
+
+def lengthVec(v: tuple) -> float:
+    return math.sqrt(v[0]*v[0] + v[1]*v[1])
+
+def unitVec(v: tuple) -> tuple:
+    return (v[0]/lengthVec(v), v[1]/lengthVec(v))
+
+def unitVecKeepSpeed(v: tuple, speed: float) -> tuple:
+    unitVec = [v[0]*speed/lengthVec(v), v[1]*speed/lengthVec(v)]
+    # unitVec[0] *= speed
+    # unitVec[1] *= speed
+    return tuple(unitVec)
+# print(unitVec((-10,0)))
+
+#print(unitVecKeepSpeed((3,4),1.517))
+print(lengthVec((-2.4724901510764026, 1.3736056394868903)))
