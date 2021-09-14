@@ -21,6 +21,7 @@ class Player(pg.sprite.Sprite):
 
         self.wallStuck = ""
         self.speed = 4
+        self.origSpeed = self.speed
 
         # for accurate collision with ball
         self.mask = pg.mask.from_surface(self.image)
@@ -103,7 +104,10 @@ class Player(pg.sprite.Sprite):
                 self.rect.y -= self.speed
             self.angle = 45
         
-            
+        # try to reset speed
+        # if no collision, this will stay as normal
+        self.speed = self.origSpeed
+
         # self.angle = getAngle(self.moveVector)
         self.image = pg.transform.rotate(self.origFrames[int(0)], self.angle)   # rotate original image only
         self.rect = self.image.get_rect(center=self.rect.center)
