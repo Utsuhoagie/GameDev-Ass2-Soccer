@@ -2,7 +2,12 @@ import math
 import numpy as np
 
 from pygame import *
+from typing import *
 
+def foo(x: List[int]) -> int:
+    return x[0] * x[0]
+
+print(foo([5]))
 
 
 def angle_between(v1, v2):
@@ -102,7 +107,7 @@ reverseVec(vec)
 # print(pos)
 
 
-wallStuck = "L"
+# wallStuck = "L"
 
-if ("L" and "R") in wallStuck:
-    print("boo")
+# if ("L" and "R") in wallStuck:
+#     print("boo")

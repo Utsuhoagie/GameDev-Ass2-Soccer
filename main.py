@@ -3,6 +3,8 @@ from pygame import *
 import os
 import random
 from math import *
+from typing import *
+
 from Helper import *
 
 from Objects.Player import *
@@ -40,13 +42,14 @@ class App:
         # ----- Gameplay ------------------------------------
         self.FPS = 60
 
-        self.playerSpeed = 5
-
         # ----- Objects -------------------------------------
         self.field = pg.Rect(20,20,self.WINDOW_W - 40,self.WINDOW_H - 40)
-        self.fieldBuffer = 0
 
-        # ----- Sprite groups -------------------------------
+        # ----- Audio ---------------------------------------
+
+        self.BOUNCE = pg.mixer.Sound(os.path.join("Sounds","bounce.ogg"))
+
+        # ----- Sprites & Groups ----------------------------
         self.ball = Ball(50,50)
         self.ballGroup = pg.sprite.Group()
 
@@ -70,10 +73,11 @@ class App:
             
             self.ball.moveVector = Vector2(self.ball.moveVector.reflect(n))
 
-    def wallCollision(self) -> tuple:
-        """Return tuple of (bool, str)
+    def wallCollision(self) -> Tuple[bool,str]:
+        """Return (bool,str)
             where bool = ball is in field
                   str  = which wall it collided"""
+
         ballRX, ballRY, ballRW, ballRH = (
             int(self.ball.rect.x), int(self.ball.rect.y), int(self.ball.rect.width), int(self.ball.rect.height))
         fieldX, fieldY, fieldW, fieldH = (
@@ -85,26 +89,31 @@ class App:
         elif ballRX <= fieldX:
             self.ball.moveVectorTimesChanged +=1
             self.ball.wallStuck = "L"
+            if self.ball.moveVectorTimesChanged < 4:
+                self.BOUNCE.play()
             return (True, "L")
         elif ballRX + ballRW >= fieldX + fieldW:
             self.ball.moveVectorTimesChanged +=1
             self.ball.wallStuck = "R"
+            if self.ball.moveVectorTimesChanged < 4:
+                self.BOUNCE.play()
             return (True, "R")
-        elif ballRY <= fieldY + self.fieldBuffer:
+        elif ballRY <= fieldY:
             self.ball.moveVectorTimesChanged +=1
             self.ball.wallStuck = "U"
+            if self.ball.moveVectorTimesChanged < 4:
+                self.BOUNCE.play()
             return (True, "U")
-        elif ballRY + ballRH >= fieldY + fieldH - self.fieldBuffer:
+        elif ballRY + ballRH >= fieldY + fieldH:
             self.ball.moveVectorTimesChanged +=1
             self.ball.wallStuck = "D"
+            if self.ball.moveVectorTimesChanged < 4:
+                self.BOUNCE.play()
             return (True, "D")
 
 
-    def playerCollision(self) -> tuple:
-        """Return tuple of (bool, str)
-            where bool = ball collides
-                  str  = which side of player it collided"""
-        #if self.ball.rect.colliderect(self.player):
+    def playerCollision(self):
+
         for playerCollide in pg.sprite.spritecollide(self.ball, self.playerGroup, False, pg.sprite.collide_mask):
             offset = (self.ball.rect.center[0] - playerCollide.rect.center[0], self.ball.rect.center[1] - playerCollide.rect.center[1])
             collisionPoint = self.ball.mask.overlap(playerCollide.mask, offset)
@@ -140,7 +149,7 @@ class App:
                 self.ball.moveVector = reflectVec
 
                 # slow player down, until no more collision
-                playerCollide.speed = 1
+                playerCollide.speed = 0.3
 
 
     def handleInput(self, player: Player):
@@ -224,6 +233,7 @@ class App:
         self.ballGroup.add(self.ball)
         self.ballGroup.update()
 
+
         self.ballGroup.draw(self.screen)
         self.playerGroup.draw(self.screen)
 
@@ -247,12 +257,7 @@ class App:
         pg.quit()
 
 
-# ---------- Handlers -------------
-
-# ---------- Draw -----------------
-
 # ----- Main ----------------------------------------
-
 
 if __name__ == '__main__':
     App().run()
