@@ -2,7 +2,7 @@ import pygame as pg
 pg.init()
 
 class Player(pg.sprite.Sprite):
-    def __init__(self, x, y, pImage, ID):
+    def __init__(self, x, y, pImage: pg.Surface, ID: int):
         super().__init__()
         self.ID = ID
 
@@ -20,7 +20,7 @@ class Player(pg.sprite.Sprite):
         self.rect.center = [x,y]
 
         self.wallStuck = ""
-        self.speed = 4
+        self.speed = 5
         self.origSpeed = self.speed
 
         # for accurate collision with ball

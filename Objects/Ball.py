@@ -1,9 +1,10 @@
 import pygame as pg
+import os
 from pygame import *
 from Objects.Assets import *
 
 class Ball(pg.sprite.Sprite):
-    def __init__(self, x, y) -> None:
+    def __init__(self, x, y):
         super().__init__()
 
         self.frames = BALL_SPRITES
@@ -58,7 +59,12 @@ class Ball(pg.sprite.Sprite):
 
     def update(self):
         if self.moveVectorTimesChanged > 0:
-            if self.moveVectorTimesChanged >= 10:
+            if self.moveVectorTimesChanged >= 20:
+                self.fixBallPos(25)
+                self.moveVectorTimesChanged -= 10
+                if self.moveVectorTimesChanged < 0:
+                    self.moveVectorTimesChanged = 0
+            elif self.moveVectorTimesChanged >= 10:
                 self.fixBallPos(5)    # fix the ball position
                 self.moveVectorTimesChanged -= 4
                 if self.moveVectorTimesChanged < 0:
