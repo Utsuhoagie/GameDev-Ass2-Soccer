@@ -3,12 +3,71 @@ import numpy as np
 
 from pygame import *
 from typing import *
+from collections import *
+from functools import *
 
-def foo(x: List[int]) -> int:
-    return x[0] * x[0]
 
-print(foo([5]))
+from functools import *
 
+def compose(*g):
+   def h(args):
+      return reduce(lambda x,y: y(x), reversed(g), args)
+   return h
+
+def square(x):
+   return x * x
+
+def increase(x):
+   return x + 1
+
+def double(x):
+   return x * 2
+
+m = compose(square,increase,double)
+print(m(5)) # Kết quả là 121 do (5 * 2 + 1) * (5 * 2 + 1)
+
+def foo(x: int) -> int:
+    return x * x
+
+cum = foo
+#print(cum(5))
+
+def apply(f, x: int) -> int:
+    return f(x)
+
+
+def foo0(x) -> "function":
+    def foo1(y) -> int:
+        return x*y
+
+    return foo1
+
+#print(foo0(5)(3))
+
+
+f = lambda x: x*x
+x = 4
+
+#print(apply(f,x))
+
+items = [2,5,8]
+items2 = [1,-2,5]
+f = lambda x,y: (x+y)
+filterF = lambda x: (x % 2 == 0)
+
+filterRes = list(filter(filterF,items))
+
+#print(filterRes)
+
+#mapRes = list(map(f,items,items2))
+reduceRes = reduce(lambda x,y: x*y, items2,"f")
+
+# print(reduceRes)
+xoo = 7
+if 2 < xoo < 6:
+    print(xoo)
+
+# =========================================================
 
 def angle_between(v1, v2):
     """ Returns the angle in radians between vectors 'v1' and 'v2'::

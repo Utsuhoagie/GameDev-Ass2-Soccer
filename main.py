@@ -31,11 +31,15 @@ LIGHTGREEN = (102,199,28)
 
 MAIN_FONT = pg.font.SysFont("arial",12)
 
+# ----- Events --------------------------------------
+
+
+
 # ----- Classes -------------------------------------
 
 class App:
     def __init__(self):
-        self.WINDOW_W, self.WINDOW_H = 800, 600
+        self.WINDOW_W, self.WINDOW_H = 400, 400
         self.screen = pg.display.set_mode((self.WINDOW_W,self.WINDOW_H))
         pg.display.set_caption("Soccer")
 
@@ -45,33 +49,32 @@ class App:
         # ----- Objects -------------------------------------
         self.field = pg.Rect(20,20,self.WINDOW_W - 40,self.WINDOW_H - 40)
 
-        # ----- Audio ---------------------------------------
-
-        self.BOUNCE = pg.mixer.Sound(os.path.join("Sounds","bounce.ogg"))
-
         # ----- Sprites & Groups ----------------------------
         self.ball = Ball(50,50)
         self.ballGroup = pg.sprite.Group()
 
-        self.p1 = Player(200,250, P1_SPRITE, 1)
-        self.p2 = Player(400,450, P2_SPRITE, 2)
+        self.p1 = Player(150,50, P1_SPRITE, 1)
+        self.p2 = Player(200,250, P2_SPRITE, 2)
         self.playerGroup = pg.sprite.Group()
 
     def wallBounce(self):
         if not self.wallCollision()[0]:
             pass
         elif self.wallCollision()[0]:
-            n = ()
             if self.wallCollision()[1] == "L":
-                n = (1,0)
+                #n = (1,0)
+                self.ball.mv = Vector2(-self.ball.mv[0], self.ball.mv[1])
             elif self.wallCollision()[1] == "R":
-                n = (-1,0)
+                #n = (-1,0)
+                self.ball.mv = Vector2(-self.ball.mv[0], self.ball.mv[1])
             elif self.wallCollision()[1] == "U":
-                n = (0,1)
+                #n = (0,1)
+                self.ball.mv = Vector2(self.ball.mv[0], -self.ball.mv[1])
             elif self.wallCollision()[1] == "D":
-                n = (0,-1)
+                #n = (0,-1)
+                self.ball.mv = Vector2(self.ball.mv[0], -self.ball.mv[1])
             
-            self.ball.moveVector = Vector2(self.ball.moveVector.reflect(n))
+            #self.ball.mv = Vector2(self.ball.mv.reflect(n))
 
     def wallCollision(self) -> Tuple[bool,str]:
         """Return (bool,str)
@@ -87,36 +90,45 @@ class App:
             ballRY > fieldY and ballRY + ballRH < fieldY + fieldH):
             return (False, "")
         elif ballRX <= fieldX:
-            self.ball.moveVectorTimesChanged +=1
+            if ballRX <= 10:
+                self.ball.x = 80
+            self.ball.mvTimesChanged += 1
             self.ball.wallStuck = "L"
-            if self.ball.moveVectorTimesChanged < 4:
-                self.BOUNCE.play()
+            if self.ball.mvTimesChanged < 3:
+                BOUNCE_SFX.play()
             return (True, "L")
         elif ballRX + ballRW >= fieldX + fieldW:
-            self.ball.moveVectorTimesChanged +=1
+            if ballRX >= self.WINDOW_W - 10:
+                self.ball.x = self.WINDOW_W - 80
+            self.ball.mvTimesChanged += 1
             self.ball.wallStuck = "R"
-            if self.ball.moveVectorTimesChanged < 4:
-                self.BOUNCE.play()
+            if self.ball.mvTimesChanged < 3:
+                BOUNCE_SFX.play()
             return (True, "R")
         elif ballRY <= fieldY:
-            self.ball.moveVectorTimesChanged +=1
+            if ballRY <= 10:
+                self.ball.y = 80
+            self.ball.mvTimesChanged += 1
             self.ball.wallStuck = "U"
-            if self.ball.moveVectorTimesChanged < 4:
-                self.BOUNCE.play()
+            if self.ball.mvTimesChanged < 3:
+                BOUNCE_SFX.play()
             return (True, "U")
         elif ballRY + ballRH >= fieldY + fieldH:
-            self.ball.moveVectorTimesChanged +=1
+            if ballRY >= self.WINDOW_H - 10:
+                self.ball.y = self.WINDOW_H - 80
+            self.ball.mvTimesChanged += 1
             self.ball.wallStuck = "D"
-            if self.ball.moveVectorTimesChanged < 4:
-                self.BOUNCE.play()
+            if self.ball.mvTimesChanged < 3:
+                BOUNCE_SFX.play()
             return (True, "D")
 
 
     def playerCollision(self):
 
-        for playerCollide in pg.sprite.spritecollide(self.ball, self.playerGroup, False, pg.sprite.collide_mask):
+        for playerCollide in pg.sprite.spritecollide(self.ball, self.playerGroup, False, pg.sprite.collide_circle):
             offset = (self.ball.rect.center[0] - playerCollide.rect.center[0], self.ball.rect.center[1] - playerCollide.rect.center[1])
             collisionPoint = self.ball.mask.overlap(playerCollide.mask, offset)
+            # overlap() returns the topleft-most point of collision between 2 masks
 
             if collisionPoint is not None:
                 # print("Collides at " + str(collisionPoint))
@@ -127,29 +139,35 @@ class App:
                 rightSide = ((playerCollide.rect.width//2,0), (playerCollide.rect.width, playerCollide.rect.height))
                 topSide = ((0,0), (playerCollide.rect.width, playerCollide.rect.height//2))
                 bottomSide = ((0, playerCollide.rect.height//2), (playerCollide.rect.width, playerCollide.rect.height))
-
-                reflectVec = unitVecKeepSpeed(Vector2(collisionPoint[0] - relativeCenter[0], collisionPoint[1] - relativeCenter[1]), self.ball.moveVector.length())
-                # reflectVec = self.ball.moveVector.reflect((relativeCenter[0] - collisionPoint[0], relativeCenter[1] - collisionPoint[1]))
+                
+                # print(collisionPoint)
+                reflectVec = unitVecKeepSpeed(Vector2(collisionPoint[0] - relativeCenter[0], collisionPoint[1] - relativeCenter[1]), self.ball.mv.length())
+                # reflectVec = self.ball.mv.reflect((relativeCenter[0] - collisionPoint[0], relativeCenter[1] - collisionPoint[1]))
                 # print("Reflection vector is " + str(reflectVec))
                 
-                if collisionPoint in leftSide:
-                    self.ball.wallStuck = "R"
-                    self.ball.fixBallPos(15)
-                if collisionPoint in rightSide:
-                    self.ball.wallStuck = "L"
-                    self.ball.fixBallPos(15)
-                if collisionPoint in topSide:
-                    self.ball.wallStuck = "D"
-                    self.ball.fixBallPos(15)
-                if collisionPoint in bottomSide:
-                    self.ball.wallStuck = "U"
-                    self.ball.fixBallPos(15)
+                # if (leftSide[0][0] <= collisionPoint[0] <= leftSide[1][0]) and (leftSide[0][1] <= collisionPoint[1] <= leftSide[1][1]):
+                #     print("rrr")
+                #     self.ball.wallStuck = "R"
+                #     self.ball.fixBallPos(2)
+                # if (rightSide[0][0] <= collisionPoint[0] <= rightSide[1][0]) and (rightSide[0][1] <= collisionPoint[1] <= rightSide[1][1]):
+                #     print("lll")
+                #     self.ball.wallStuck = "L"
+                #     self.ball.fixBallPos(2)
+                # if (topSide[0][0] <= collisionPoint[0] <= topSide[1][0]) and (topSide[0][1] <= collisionPoint[1] <= topSide[1][1]):
+                #     print("ddd")
+                #     self.ball.wallStuck = "D"
+                #     self.ball.fixBallPos(2)
+                # if (bottomSide[0][0] <= collisionPoint[0] <= bottomSide[1][0]) and (bottomSide[0][1] <= collisionPoint[1] <= bottomSide[1][1]):
+                #     print("uuu")
+                #     self.ball.wallStuck = "U"
+                #     self.ball.fixBallPos(2)
 
-                #self.ball.moveVector = Vector2(reflectVec)
-                self.ball.moveVector = reflectVec
+                #self.ball.mv = Vector2(reflectVec)
+                self.ball.mv = reflectVec
 
                 # slow player down, until no more collision
-                playerCollide.speed = 0.3
+                playerCollide.speed = 1
+
 
 
     def handleInput(self, player: Player):
@@ -209,7 +227,7 @@ class App:
     def draw(self):
         self.screen.fill(BLACK)
 
-        currentSpeed = "(" + str(self.ball.moveVector[0]) + ", " + str(self.ball.moveVector[1]) + ") - (" + str(self.p1.rect.center[0]) + ", " + str(self.p1.rect.center[1]) + ")"
+        currentSpeed = "(" + str(self.ball.mv[0]) + ", " + str(self.ball.mv[1]) + ") - (" + str(self.ball.mv.length()) + ") - (" + str(self.p1.rect.center[0]) + ", " + str(self.p1.rect.center[1]) + ")"
         speedText = MAIN_FONT.render(currentSpeed,1,WHITE)
         self.screen.blit(speedText,(self.WINDOW_W//2 - speedText.get_width()//2, 7))
 
@@ -241,6 +259,7 @@ class App:
 
     def run(self):
         runFlag = True
+        restartFlag = False
         clock = pg.time.Clock()
 
         while runFlag:
@@ -249,6 +268,9 @@ class App:
                 if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                     runFlag = False
                     break
+
+            if restartFlag:
+                break
 
             self.update()
 

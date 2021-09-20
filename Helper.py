@@ -10,6 +10,6 @@ def lengthVec(v: tuple) -> float:
 
 def unitVecKeepSpeed(v: tuple, speed: float) -> tuple:
     if v.length() != 0:
-        return Vector2(v[0]*speed/v.length(), v[1]*speed/v.length())
+        return Vector2(float(v[0]*speed/v.length()), float(v[1]*speed/v.length()))
     else:
-        return Vector2(v[0]*speed/(v.length() + 0.1), v[1]*speed/(v.length() + 0.1))
+        return Vector2(float(v[0]*speed/(v.length() + 0.1)), float(v[1]*speed/(v.length() + 0.1)))

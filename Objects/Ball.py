@@ -23,25 +23,44 @@ class Ball(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [x,y]
         
-        #self.moveVector = (0.3999999999999999, -2.7999999999999994)
-        self.moveVector = Vector2(3.5,1)
-        self.moveVectorTimesChanged = 0         # check if it is stuck
+        #self.mv = (0.3999999999999999, -2.7999999999999994)
+        self.mv = Vector2(4,0)
+        self.mvTimesChanged = 0         # check if it is stuck
         self.wallStuck = ""                     # which wall the ball is stuck in
         self.angle = 0.0
 
-    def move(self):
-        self.isAnimated = True
-        self.animationSpeed = (pow(self.moveVector[0],2) + pow(self.moveVector[1],2) + 10)/120
-            # don't pay attention to the numbers, this just looks nice
+        self.frictionTimer = 240
 
-        self.rect.x += self.moveVector[0]
-        self.rect.y += self.moveVector[1]
+    def move(self):
+        
+
+
+        if abs(self.mv[0]) + abs(self.mv[1]) > 1.5:
+            self.isAnimated = True
+            self.animationSpeed = (pow(self.mv[0],2) + pow(self.mv[1],2) + 10)/120
+                # don't pay attention to the numbers, this just looks nice
+        else:
+            self.isAnimated = False
+            self.mv = Vector2(0,0)
+            self.animationSpeed = 0
+            self.image = self.frames[int(self.currentImageIndex)]
+
+
+
+        self.rect.x += float(self.mv[0])
+        self.rect.y += float(self.mv[1])
+        
+        if self.frictionTimer % 30 == 0 and self.frictionTimer > 0:
+            self.mv[0] *= 1
+            self.mv[1] *= 1
+
+
         self.rotate()   # rotate ball so it rolls forward
 
     def rotate(self):
         """rotate an image while keeping its center"""
-        #self.angle = getAngle(self.moveVector)
-        self.angle = self.moveVector.angle_to(Vector2(1,0))
+        #self.angle = getAngle(self.mv)
+        self.angle = self.mv.angle_to(Vector2(1,0))
         self.image = pg.transform.rotate(self.origFrames[int(self.currentImageIndex)], self.angle)   # rotate original image only
         self.rect = self.image.get_rect(center=self.rect.center)
 
@@ -58,21 +77,22 @@ class Ball(pg.sprite.Sprite):
             self.rect.y -= displace
 
     def update(self):
-        if self.moveVectorTimesChanged > 0:
-            if self.moveVectorTimesChanged >= 20:
-                self.fixBallPos(25)
-                self.moveVectorTimesChanged -= 10
-                if self.moveVectorTimesChanged < 0:
-                    self.moveVectorTimesChanged = 0
-            elif self.moveVectorTimesChanged >= 10:
+        if self.mvTimesChanged > 0:
+            # if self.mvTimesChanged >= 20:
+            #     self.fixBallPos(25)
+            #     self.mvTimesChanged -= 10
+            #     if self.mvTimesChanged < 0:
+            #         self.mvTimesChanged = 0
+            # elif self.mvTimesChanged >= 2:
+            if self.mvTimesChanged >= 2:
                 self.fixBallPos(5)    # fix the ball position
-                self.moveVectorTimesChanged -= 4
-                if self.moveVectorTimesChanged < 0:
-                    self.moveVectorTimesChanged = 0
+                self.mvTimesChanged -= 4
+                if self.mvTimesChanged < 0:
+                    self.mvTimesChanged = 0
             else:
-                self.moveVectorTimesChanged -= 1
+                self.mvTimesChanged -= 1
         
-        if self.moveVector.length() == 0:
+        if self.mv.length() == 0:
             self.isAnimated = False
 
         if self.isAnimated:
@@ -83,5 +103,8 @@ class Ball(pg.sprite.Sprite):
             
             self.image = self.frames[int(self.currentImageIndex)]
             self.mask = pg.mask.from_surface(self.image)
+
+        if self.frictionTimer > 0:
+            self.frictionTimer -= 1
 
         self.move()

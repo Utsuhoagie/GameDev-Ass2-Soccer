@@ -23,3 +23,4 @@ P2_SPRITE = pg.image.load(os.path.join("Sprites\Players","red.png")).convert_alp
 
 # ----- Audio ---------------------------------------
 
+BOUNCE_SFX = pg.mixer.Sound(os.path.join("Sounds","bounce.ogg"))
