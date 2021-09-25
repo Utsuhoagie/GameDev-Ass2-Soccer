@@ -1,5 +1,10 @@
 import pygame as pg
 import os
+pg.init()
+
+# ----- Fonts ----------------------
+
+FONT = pg.font.SysFont("arial", 64)
 
 
 # ----- Sprites --------------------
@@ -22,3 +27,4 @@ BALL_R = BALL_1.get_width()//2
 P1 = pg.image.load(os.path.join("Assets","Sprites","Players","blue.png"))
 P1_CHARGE = pg.image.load(os.path.join("Assets","Sprites","Players","blueCharge.png"))
 P1_R = P1.get_width()//2
+
